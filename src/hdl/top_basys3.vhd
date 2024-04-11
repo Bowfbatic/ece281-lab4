@@ -113,11 +113,28 @@ architecture top_basys3_arch of top_basys3 is
 	); 
 	end component clock_divider;
 	
+	component TDM4 is
+	generic ( constant k_WIDTH : natural  := 4); -- bits in input and output
+    Port ( i_clk		: in  STD_LOGIC;
+--           i_reset		: in  STD_LOGIC; -- asynchronous
+           i_D3 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+		   i_D2 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+--		   i_D1 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+--		   i_D0 		: in  STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+		   o_data		: out STD_LOGIC_VECTOR (k_WIDTH - 1 downto 0);
+		   o_sel		: out STD_LOGIC_VECTOR (3 downto 0)	-- selected data line (one-cold)
+	);
+	end component TDM4;
+	
 	-- signals
 	signal w_clk   :   STD_LOGIC;
 	signal w_floor :   STD_LOGIC_VECTOR (3 downto 0);
 	signal w_elevator_reset:   STD_LOGIC;
 	signal w_clk_reset     :   STD_LOGIC;
+	signal w_clk_tdm       :   STD_LOGIC;
+	signal w_dig_tens      :   STD_LOGIC_VECTOR (3 downto 0);
+	signal w_dig_ones      :   STD_LOGIC_VECTOR (3 downto 0);
+	signal w_data          :   STD_LOGIC_VECTOR (3 downto 0);
 	
   
 begin
@@ -137,24 +154,51 @@ begin
    	    o_S => seg
    	);
    	
-   	clkdiv_inst :   clock_divider
-   	    generic map ( k_DIV => 2 * 25000000 )
+   	TDM4_init:  TDM4
+   	port map (
+   	    i_clk => w_clk_tdm,
+   	    i_D3 => w_dig_tens,
+   	    i_D2 => w_dig_ones,
+   	    o_data => w_data,
+   	    o_sel => an
+   	    );
+   	    
+   	clkdiv_fsm_inst :   clock_divider
+   	    generic map ( k_DIV => 2 * 25000000 ) -- 4 Hz
    	    port map (
    	        i_clk => clk,
    	        i_reset => w_clk_reset,
    	        o_clk => w_clk
    	    );
+   	    
+   	clkdiv_TDM4_inst :   clock_divider
+   	    generic map ( k_DIV => 1666666 ) -- 60 Hz
+   	    port map (
+   	        i_clk => clk,
+   	        i_reset => w_clk_reset,
+   	        o_clk => w_clk_tdm
+   	    );
 	
 	-- CONCURRENT STATEMENTS ----------------------------
 	w_elevator_reset <= btnR or btnU;
 	w_clk_reset <= btnU or btnL;
+	
+	w_dig_tens <= x"1" when w_floor > x"9" else
+	              x"0";
+	w_dig_ones <= x"0" when w_floor = x"A" else
+	              x"1" when w_floor = x"B" else
+	              x"2" when w_floor = x"C" else
+	              x"3" when w_floor = x"D" else
+	              x"4" when w_floor = x"E" else
+	              x"5" when w_floor = x"F" else
+	              x"2";
 	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
 	led(15) <= w_clk;
 	led(14 downto 0) <= (others => '0');
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
 	
 	-- wire up active-low 7SD anodes (an) as required
-	an  <= (2 => '0', others => '1');
+	an  <= (2 => '0', 3 => '0', others => '1');
 	-- Tie any unused anodes to power ('1') to keep them off
 	
 end top_basys3_arch;
