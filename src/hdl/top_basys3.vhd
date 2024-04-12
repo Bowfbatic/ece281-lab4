@@ -150,7 +150,7 @@ begin
    	
    	sevenSegDecoder_init:   sevenSegDecoder
    	port map (
-   	    i_d => w_floor,
+   	    i_d => w_data,
    	    o_S => seg
    	);
    	
@@ -172,7 +172,7 @@ begin
    	    );
    	    
    	clkdiv_TDM4_inst :   clock_divider
-   	    generic map ( k_DIV => 1666666 ) -- 60 Hz
+   	    generic map ( k_DIV => 1000 ) -- 60 Hz
    	    port map (
    	        i_clk => clk,
    	        i_reset => w_clk_reset,
@@ -184,6 +184,7 @@ begin
 	w_clk_reset <= btnU or btnL;
 	
 	w_dig_tens <= x"1" when w_floor > x"9" else
+	              x"1" when w_floor = x"0" else
 	              x"0";
 	w_dig_ones <= x"0" when w_floor = x"A" else
 	              x"1" when w_floor = x"B" else
@@ -191,14 +192,17 @@ begin
 	              x"3" when w_floor = x"D" else
 	              x"4" when w_floor = x"E" else
 	              x"5" when w_floor = x"F" else
-	              x"2";
+	              x"6" when w_floor = x"0" else
+	              w_floor;
 	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
 	led(15) <= w_clk;
-	led(14 downto 0) <= (others => '0');
+	led(14 downto 0) <= (13 downto 10 => an, others => '0');
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
 	
 	-- wire up active-low 7SD anodes (an) as required
-	an  <= (2 => '0', 3 => '0', others => '1');
+--	an  <= (2 => '0', 3 => '0', others => '1');
+    an(1) <= '1';
+    an(0) <= '1';
 	-- Tie any unused anodes to power ('1') to keep them off
 	
 end top_basys3_arch;
