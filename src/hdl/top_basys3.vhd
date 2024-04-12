@@ -196,7 +196,7 @@ begin
 	              w_floor;
 	-- LED 15 gets the FSM slow clock signal. The rest are grounded.
 	led(15) <= w_clk;
-	led(14 downto 0) <= (13 downto 10 => an, others => '0');
+	led(14 downto 0) <= ( others => '0');
 	-- leave unused switches UNCONNECTED. Ignore any warnings this causes.
 	
 	-- wire up active-low 7SD anodes (an) as required
